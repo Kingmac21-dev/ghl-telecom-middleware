@@ -1,31 +1,19 @@
 require("dotenv").config();
 const { Sequelize, DataTypes } = require("sequelize");
 
-let sequelize;
+// Create Sequelize using DATABASE_URL
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: "postgres",
+  logging: false,
+  dialectOptions: {
+    ssl:
+      process.env.DB_SSL === "true"
+        ? { require: true, rejectUnauthorized: false }
+        : false,
+  },
+});
 
-if (process.env.DB_HOST) {
-  sequelize = new Sequelize(
-    process.env.DB_NAME,
-    process.env.DB_USER,
-    process.env.DB_PASS,
-    {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT || 5432,
-      dialect: "postgres",
-      logging: false,
-      dialectOptions: {
-        ssl: process.env.DB_SSL === "true" ? { require: true, rejectUnauthorized: false } : false,
-      },
-    }
-  );
-} else {
-  sequelize = new Sequelize({
-    dialect: "sqlite",
-    storage: "./database.sqlite",
-    logging: false,
-  });
-}
-
+// Define Models
 const User = sequelize.define("User", {
   name: DataTypes.STRING,
   phone: DataTypes.STRING,
@@ -40,21 +28,33 @@ const CallLog = sequelize.define("CallLog", {
   payload: DataTypes.JSON,
 });
 
-(async () => {
+async function testDB() {
   try {
+    console.log("🔄 Connecting to Render PostgreSQL...\n");
+
     await sequelize.authenticate();
-    console.log("✅ Connected to DB");
+    console.log("✅ Connected successfully!\n");
+
+    // Sync tables (creates them if they don't exist)
+    await sequelize.sync();
+    console.log("📦 Tables synced.\n");
 
     const users = await User.findAll();
     console.log("📋 Users:");
-    users.forEach((u) => console.table(u.toJSON()));
+    console.log(users.map(u => u.toJSON()));
 
     const calls = await CallLog.findAll();
-    console.log("📞 CallLogs:");
-    calls.forEach((c) => console.table(c.toJSON()));
+    console.log("\n📞 CallLogs:");
+    console.log(calls.map(c => c.toJSON()));
+
+    console.log("\n🎉 Database check complete!");
   } catch (err) {
-    console.error("❌ Error reading DB:", err);
+    console.error("❌ Database error:");
+    console.error(err);
   } finally {
     await sequelize.close();
+    process.exit();
   }
-})();
+}
+
+testDB();
