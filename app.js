@@ -5,24 +5,24 @@ const axios = require("axios");
 const https = require("https");
 
 const app = express();
-const PORT = process.env.PORT || 8080;
-
 app.use(express.json());
 
-/* =====================================================
-   DATABASE SETUP
-===================================================== */
+const PORT = process.env.PORT || 8080;
+
+// =====================
+// DATABASE SETUP
+// =====================
 let sequelize;
 
-if (process.env.DB_HOST) {
-  // Production (Render Postgres)
+if (process.env.NODE_ENV === "production" && process.env.RENDER_DB_HOST) {
+  // Use Render internal DB in production
   sequelize = new Sequelize(
-    process.env.DB_NAME,
-    process.env.DB_USER,
-    process.env.DB_PASS,
+    process.env.RENDER_DB_NAME,
+    process.env.RENDER_DB_USER,
+    process.env.RENDER_DB_PASS,
     {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT || 5432,
+      host: process.env.RENDER_DB_HOST,
+      port: process.env.RENDER_DB_PORT || 5432,
       dialect: "postgres",
       logging: false,
       dialectOptions: {
@@ -33,8 +33,20 @@ if (process.env.DB_HOST) {
       },
     }
   );
+} else if (process.env.DATABASE_URL) {
+  // Local dev: use external DATABASE_URL
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: "postgres",
+    logging: false,
+    dialectOptions: {
+      ssl:
+        process.env.DB_SSL === "true"
+          ? { require: true, rejectUnauthorized: false }
+          : false,
+    },
+  });
 } else {
-  // Development (SQLite)
+  // Fallback to SQLite
   sequelize = new Sequelize({
     dialect: "sqlite",
     storage: "./database.sqlite",
