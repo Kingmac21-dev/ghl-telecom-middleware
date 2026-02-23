@@ -14,45 +14,35 @@ const PORT = process.env.PORT || 8080;
 // =====================
 let sequelize;
 
-if (process.env.NODE_ENV === "production" && process.env.RENDER_DB_HOST) {
-  // Use Render internal DB in production
+if (process.env.NODE_ENV === "production") {
   sequelize = new Sequelize(
-    process.env.RENDER_DB_NAME,
-    process.env.RENDER_DB_USER,
-    process.env.RENDER_DB_PASS,
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASS,
     {
-      host: process.env.RENDER_DB_HOST,
-      port: process.env.RENDER_DB_PORT || 5432,
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT || 5432,
       dialect: "postgres",
       logging: false,
       dialectOptions: {
-        ssl:
-          process.env.DB_SSL === "true"
-            ? { require: true, rejectUnauthorized: false }
-            : false,
+        ssl: {
+          require: true,
+          rejectUnauthorized: false,
+        },
       },
     }
   );
-} else if (process.env.DATABASE_URL) {
-  // Local dev: use external DATABASE_URL
-  sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: "postgres",
-    logging: false,
-    dialectOptions: {
-      ssl:
-        process.env.DB_SSL === "true"
-          ? { require: true, rejectUnauthorized: false }
-          : false,
-    },
-  });
+  console.log("Connecting to Postgres database...");
 } else {
-  // Fallback to SQLite
   sequelize = new Sequelize({
     dialect: "sqlite",
     storage: "./database.sqlite",
     logging: false,
   });
+  console.log("Connecting to SQLite database...");
 }
+
+module.exports = sequelize;
 
 /* =====================================================
    MODELS
