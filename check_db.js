@@ -1,7 +1,7 @@
-require("dotenv").config();
 const { Sequelize, DataTypes } = require("sequelize");
+require("dotenv").config();
 
-// Create Sequelize using DATABASE_URL
+// Connect
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: "postgres",
   logging: false,
@@ -13,43 +13,50 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
   },
 });
 
-// Define Models
+// Models
+const Subaccount = sequelize.define("Subaccount", {
+  name: DataTypes.STRING,
+  locationId: DataTypes.STRING,
+  ghlInboundUrl: DataTypes.STRING,
+  didNumber: DataTypes.STRING,
+});
+
 const User = sequelize.define("User", {
   name: DataTypes.STRING,
   phone: DataTypes.STRING,
   contactId: DataTypes.STRING,
+  locationId: DataTypes.STRING,
 });
 
 const CallLog = sequelize.define("CallLog", {
   type: DataTypes.STRING,
   phone: DataTypes.STRING,
   contactId: DataTypes.STRING,
+  locationId: DataTypes.STRING,
   status: DataTypes.STRING,
   payload: DataTypes.JSON,
 });
 
-async function testDB() {
+async function showTables() {
   try {
-    console.log("🔄 Connecting to Render PostgreSQL...\n");
-
     await sequelize.authenticate();
-    console.log("✅ Connected successfully!\n");
+    console.log("✅ Connected to Postgres\n");
 
-    // Sync tables (creates them if they don't exist)
     await sequelize.sync();
-    console.log("📦 Tables synced.\n");
+
+    const subs = await Subaccount.findAll();
+    console.log("📋 Subaccounts:");
+    console.table(subs.map(s => s.toJSON()));
 
     const users = await User.findAll();
-    console.log("📋 Users:");
-    console.log(users.map(u => u.toJSON()));
+    console.log("\n📋 Users:");
+    console.table(users.map(u => u.toJSON()));
 
     const calls = await CallLog.findAll();
-    console.log("\n📞 CallLogs:");
-    console.log(calls.map(c => c.toJSON()));
+    console.log("\n📋 CallLogs:");
+    console.table(calls.map(c => c.toJSON()));
 
-    console.log("\n🎉 Database check complete!");
   } catch (err) {
-    console.error("❌ Database error:");
     console.error(err);
   } finally {
     await sequelize.close();
@@ -57,4 +64,4 @@ async function testDB() {
   }
 }
 
-testDB();
+showTables();
