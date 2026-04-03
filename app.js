@@ -120,6 +120,7 @@ async function handleOutboundCall(data, res) {
   try {
     const normalizedPhone = normalizePhone(data.phone || data.from_number);
 
+    // ✅ Find subaccount
     const subaccount = await Subaccount.findOne({
       where: { locationId: data.locationId },
     });
@@ -131,6 +132,7 @@ async function handleOutboundCall(data, res) {
       });
     }
 
+    // ✅ Upsert user
     await User.upsert({
       name: data.name,
       phone: normalizedPhone,
@@ -138,9 +140,12 @@ async function handleOutboundCall(data, res) {
       locationId: subaccount.locationId,
     });
 
+    // ✅ Log outbound call
     await logCall("outbound_call", { ...data, locationId: subaccount.locationId });
 
-    // 🔹 STEP 1: Get token
+    // ===============================
+    // 🔹 STEP 1: Generate Viirtue token
+    // ===============================
     const tokenRes = await axios.post(
       `${process.env.VIIRTUE_BASE_URL}/tokens`,
       {
@@ -150,15 +155,15 @@ async function handleOutboundCall(data, res) {
         username: process.env.VIIRTUE_USERNAME,
         password: process.env.VIIRTUE_PASSWORD,
       },
-      {
-        headers: { "Content-Type": "application/json" },
-      }
+      { headers: { "Content-Type": "application/json" } }
     );
 
     const token = tokenRes.data.access_token;
-    console.log("✅ Token received");
+    console.log("✅ Viirtue token generated");
 
-    // 🔹 STEP 2: Make call
+    // ===============================
+    // 🔹 STEP 2: Make outbound call
+    // ===============================
     const callRes = await axios.post(
       `${process.env.VIIRTUE_BASE_URL}/calls`,
       {
@@ -175,6 +180,7 @@ async function handleOutboundCall(data, res) {
 
     console.log("📞 Call initiated:", callRes.data);
 
+    // ✅ Response to webhook caller
     return res.json({
       success: true,
       message: "Call initiated successfully",
@@ -182,8 +188,7 @@ async function handleOutboundCall(data, res) {
     });
 
   } catch (err) {
-    console.error("❌ Outbound error:", err.response?.data || err.message);
-
+    console.error("❌ Outbound call error:", err.response?.data || err.message);
     return res.status(500).json({
       success: false,
       error: err.response?.data || err.message,
