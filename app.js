@@ -178,12 +178,13 @@ async function handleOutboundCall(data, res) {
     console.log("📡 Calling URL:", url);
     console.log("📞 From:", fromNumber, "➡️ To:", toNumber);
 
-    const callRes = await axios.post(
-      url,
-      {
-        from: fromNumber,
-        to: toNumber,
-      },
+const callRes = await axios.post(
+  url,
+  {
+    from: fromNumber,
+    to: toNumber,
+    callid: `call_${Date.now()}`
+  },
       {
         headers: {
           Authorization: `Bearer ${token}`,
