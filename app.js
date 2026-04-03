@@ -173,7 +173,7 @@ async function handleOutboundCall(data, res) {
       ? normalizedPhone
       : `+${normalizedPhone}`;
 
-    const url = `${process.env.VIIRTUE_BASE_URL}/domains/adosphereindia.broadtel/calls`;
+    const url = `${process.env.VIIRTUE_BASE_URL}/domains/adosphereindia.broadtel/users/1001/calls`;
 
     console.log("📡 Calling URL:", url);
     console.log("📞 From:", fromNumber, "➡️ To:", toNumber);
