@@ -164,18 +164,37 @@ async function handleOutboundCall(data, res) {
     // ===============================
     // 🔹 STEP 2: Make outbound call
     // ===============================
-    const fromNumber = subaccount.didNumber.startsWith('+') ? subaccount.didNumber : `+${subaccount.didNumber}`;
-    const toNumber = normalizedPhone.startsWith('+') ? normalizedPhone : `+${normalizedPhone}`;
+
+    const fromNumber = subaccount.didNumber.startsWith('+')
+      ? subaccount.didNumber
+      : `+${subaccount.didNumber}`;
+
+    const toNumber = normalizedPhone.startsWith('+')
+      ? normalizedPhone
+      : `+${normalizedPhone}`;
+
+    const url = `${process.env.VIIRTUE_BASE_URL}/domains/adosphereindia.broadtel/calls`;
+
+    console.log("📡 Calling URL:", url);
+    console.log("📞 From:", fromNumber, "➡️ To:", toNumber);
 
     const callRes = await axios.post(
-      `${process.env.VIIRTUE_BASE_URL}/calls`,
-      { from: fromNumber, to: toNumber },
-      { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      url,
+      {
+        from: fromNumber,
+        to: toNumber,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
     );
 
     console.log("📞 Call initiated:", callRes.data);
 
-    // ✅ Response to webhook caller
+    // ✅ VERY IMPORTANT (this was missing)
     return res.json({
       success: true,
       message: "Call initiated successfully",
@@ -184,6 +203,7 @@ async function handleOutboundCall(data, res) {
 
   } catch (err) {
     console.error("❌ Outbound call error:", err.response?.data || err.message);
+
     return res.status(500).json({
       success: false,
       error: err.response?.data || err.message,
