@@ -117,46 +117,79 @@ async function transcribeCall(audioPath) {
    OUTBOUND CALL
 ===================================================== */
 async function handleOutboundCall(data, res) {
-  const normalizedPhone = normalizePhone(data.phone || data.from_number);
+  try {
+    const normalizedPhone = normalizePhone(data.phone || data.from_number);
 
-  const subaccount = await Subaccount.findOne({
-    where: { locationId: data.locationId },
-  });
+    const subaccount = await Subaccount.findOne({
+      where: { locationId: data.locationId },
+    });
 
-  if (!subaccount) {
-    return res.status(400).json({
+    if (!subaccount) {
+      return res.status(400).json({
+        success: false,
+        message: "No subaccount found. Ensure locationId is correct.",
+      });
+    }
+
+    await User.upsert({
+      name: data.name,
+      phone: normalizedPhone,
+      contactId: data.contactId,
+      locationId: subaccount.locationId,
+    });
+
+    await logCall("outbound_call", { ...data, locationId: subaccount.locationId });
+
+    // 🔹 STEP 1: Get token
+    const tokenRes = await axios.post(
+      `${process.env.VIIRTUE_BASE_URL}/tokens`,
+      {
+        grant_type: "password",
+        client_id: process.env.VIIRTUE_CLIENT_ID,
+        client_secret: process.env.VIIRTUE_CLIENT_SECRET,
+        username: process.env.VIIRTUE_USERNAME,
+        password: process.env.VIIRTUE_PASSWORD,
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+    const token = tokenRes.data.access_token;
+    console.log("✅ Token received");
+
+    // 🔹 STEP 2: Make call
+    const callRes = await axios.post(
+      `${process.env.VIIRTUE_BASE_URL}/calls`,
+      {
+        from: subaccount.didNumber,
+        to: normalizedPhone,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("📞 Call initiated:", callRes.data);
+
+    return res.json({
+      success: true,
+      message: "Call initiated successfully",
+      data: callRes.data,
+    });
+
+  } catch (err) {
+    console.error("❌ Outbound error:", err.response?.data || err.message);
+
+    return res.status(500).json({
       success: false,
-      message: "No subaccount found. Ensure locationId is correct.",
+      error: err.response?.data || err.message,
     });
   }
-
-  await User.upsert({
-    name: data.name,
-    phone: normalizedPhone,
-    contactId: data.contactId,
-    locationId: subaccount.locationId,
-  });
-
-  await logCall("outbound_call", { ...data, locationId: subaccount.locationId });
-
-  const vodiaPayload = {
-    from_number: subaccount.didNumber,
-    to_number: normalizedPhone,
-    contact_name: data.name,
-    contact_id: data.contactId,
-    locationId: subaccount.locationId,
-  };
-
-  console.log("📤 Payload to send to Vodia:", vodiaPayload);
-
-  return res.json({
-    success: true,
-    message: "Outbound call processed",
-    locationId: subaccount.locationId,
-    payload: vodiaPayload,
-  });
 }
-
 /* =====================================================
    INBOUND CALL
 ===================================================== */
