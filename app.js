@@ -182,7 +182,7 @@ const callRes = await axios.post(
   url,
   {
     from: fromNumber,
-    to: toNumber,
+    destination: toNumber,
     callid: `call_${Date.now()}`
   },
       {
