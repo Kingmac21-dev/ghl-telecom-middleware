@@ -164,18 +164,13 @@ async function handleOutboundCall(data, res) {
     // ===============================
     // 🔹 STEP 2: Make outbound call
     // ===============================
+    const fromNumber = subaccount.didNumber.startsWith('+') ? subaccount.didNumber : `+${subaccount.didNumber}`;
+    const toNumber = normalizedPhone.startsWith('+') ? normalizedPhone : `+${normalizedPhone}`;
+
     const callRes = await axios.post(
       `${process.env.VIIRTUE_BASE_URL}/calls`,
-      {
-        from: subaccount.didNumber,
-        to: normalizedPhone,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
+      { from: fromNumber, to: toNumber },
+      { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
     );
 
     console.log("📞 Call initiated:", callRes.data);
